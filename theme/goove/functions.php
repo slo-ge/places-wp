@@ -26,6 +26,7 @@ add_filter('rest_query_vars', function ($valid_vars) {
 });
 
 // NOTE: it is important to add here the custom post type --> "locations"
+// otherwise it can not query on object, because lat & lng is not set on every object
 add_filter('rest_locations_query', function ($args, $request) {
     $geo = json_decode($request->get_param('geo_location'));
     if (isset($geo->lat, $geo->lng)) {
@@ -41,6 +42,28 @@ add_filter('rest_locations_query', function ($args, $request) {
     return $args;
 }, 10, 2);
 
+
+function related_posts_endpoint( $request_data ) {
+    $tag_id = $request_data['tag_id'];
+
+    $uposts = get_posts(
+        array(
+            'post_type' => 'locations',
+            'tag__in'   => array($tag_id),
+            'orderby'   => 'rand'
+            'posts_per_page' => 5
+        )
+    );
+
+    return  $uposts;
+}
+
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sections/v1', '/tag/related/(?P<tag_id>[\d]+)', array(
+            'methods' => 'GET',
+            'callback' => 'related_posts_endpoint'
+    ));
+});;
 
 function my_custom_save_post($id)
 {
